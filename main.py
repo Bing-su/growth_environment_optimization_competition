@@ -46,12 +46,12 @@ def train(
     num_tf_nhead: int = typer.Option(6, "--nhead", help="transformer 레이어의 nhead"),
     num_tf_layer: int = typer.Option(6, "--tf-layer", help="transformer 인코더의 층 수"),
     batch_size: int = typer.Option(
-        16,
+        32,
         "-b",
         "--batch-size",
         help="훈련에 사용할 batch size, auto_scale_batch_size을 사용하므로 무시될 수 있음",
     ),
-    epochs: int = typer.Option(20, "-e", "--epochs", help="epochs 수"),
+    epochs: int = typer.Option(100, "-e", "--epochs", help="epochs 수"),
     test: bool = typer.Option(False, help="fast_dev_run 옵션을 사용하여 테스트합니다."),
 ):
     "모델을 훈련합니다."
@@ -64,21 +64,21 @@ def train(
 
     datamodule = ProjectDataModule(data_dir, hf_model_name, batch_size=batch_size)
 
-    early_stop = EarlyStopping("val_loss")
+    early_stop = EarlyStopping("val_loss", patience=10)
 
     trainer = pl.Trainer(
         devices="auto",
         accelerator="auto",
         logger=False,
         max_epochs=epochs,
-        precision=16,
+        precision=32,
         callbacks=[RichProgressBar(), early_stop],
-        auto_scale_batch_size=True,
-        auto_lr_find=True,
         fast_dev_run=test,
     )
 
     trainer.fit(model, datamodule=datamodule)
+    pred = trainer.predict(model, datamodule=datamodule)
+    torch.save(pred, "predict.pt")
 
 
 if __name__ == "__main__":

@@ -14,10 +14,12 @@ class ProjectModel(pl.LightningModule):
         t2v_out: int = 512,
         num_tf_nhead: int = 6,
         num_tf_layer: int = 6,
+        lr: float = 0.001,
     ):
         super().__init__()
         self.save_hyperparameters()
         self.image_model = AutoModel.from_pretrained(hf_model_name)
+        self.lr = lr
 
         self.t2v_out = t2v_out
         self.t2v = Time2Vec(1440, t2v_out, 18)
@@ -25,7 +27,8 @@ class ProjectModel(pl.LightningModule):
         tf_layer = nn.TransformerEncoderLayer(18, nhead=num_tf_nhead, batch_first=True)
         self.tf = nn.TransformerEncoder(tf_layer, num_tf_layer)
 
-        self.regressor = nn.LazyLinear(1)
+        linear_input = self.image_model.config.hidden_sizes[-1] + t2v_out * 18
+        self.regressor = nn.Linear(linear_input, 1)
 
         self.loss = nn.L1Loss()
 
@@ -60,8 +63,15 @@ class ProjectModel(pl.LightningModule):
         loss = self.loss(pred, label)
         self.log("val_loss", loss, prog_bar=True)
 
+    def predict_step(self, batch, batch_idx):
+        image, meta = batch
+        pred = self(image, meta)
+        return pred
+
     def configure_optimizers(self):
         optimizer = Ranger21(
-            self.parameters(), num_iterations=self.trainer.estimated_stepping_batches
+            self.parameters(),
+            lr=self.lr,
+            num_iterations=self.trainer.estimated_stepping_batches,
         )
         return optimizer

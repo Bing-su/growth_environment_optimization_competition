@@ -25,7 +25,7 @@ class ProjectDataModule(pl.LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         if stage in ("fit", None):
             full_train_data = torch.load(self.train_data_dir)
-            len_train = len(full_train_data) * 0.9
+            len_train = int(len(full_train_data) * 0.9)
             self.train_ds, self.val_ds = random_split(
                 full_train_data, [len_train, len(full_train_data) - len_train]
             )

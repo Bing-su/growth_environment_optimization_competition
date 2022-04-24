@@ -1,0 +1,30 @@
+name: dacon
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+
+  - datasets
+  - ipykernel
+  - ipywidgets
+  - numpy
+  - pandas
+  - pillow
+  - pytorch
+  - pytorch-lightning
+  - rich
+  - scipy
+  - transformers
+  - torchmetrics
+  - torchvision
+  - typer
+
+  - black
+  - flake8
+  - flake8-bugbear
+  - pip:
+      - pytorch-optimizer>=0.6.0
+      - transformers>=4.18.0

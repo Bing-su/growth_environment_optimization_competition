@@ -3,7 +3,7 @@ from pathlib import Path
 import pytorch_lightning as pl
 import torch
 import typer
-from pytorch_lightning.callbacks import RichProgressBar
+from pytorch_lightning.callbacks import EarlyStopping, RichProgressBar
 
 from project import ProjectDataModule, ProjectModel, TestDataset, TrainDataset
 
@@ -45,6 +45,12 @@ def train(
     t2v_out: int = typer.Option(512, "--t2v", min=2, help="time2vec 레이어의 output 크기"),
     num_tf_nhead: int = typer.Option(6, "--nhead", help="transformer 레이어의 nhead"),
     num_tf_layer: int = typer.Option(6, "--tf-layer", help="transformer 인코더의 층 수"),
+    batch_size: int = typer.Option(
+        16,
+        "-b",
+        "--batch-size",
+        help="훈련에 사용할 batch size, auto_scale_batch_size을 사용하므로 무시될 수 있음",
+    ),
     epochs: int = typer.Option(20, "-e", "--epochs", help="epochs 수"),
     test: bool = typer.Option(False, help="fast_dev_run 옵션을 사용하여 테스트합니다."),
 ):
@@ -56,15 +62,17 @@ def train(
         num_tf_layer=num_tf_layer,
     )
 
-    datamodule = ProjectDataModule(data_dir, hf_model_name)
+    datamodule = ProjectDataModule(data_dir, hf_model_name, batch_size=batch_size)
+
+    early_stop = EarlyStopping("val_loss")
 
     trainer = pl.Trainer(
-        devices=1,
-        accelerator="cpu",
+        devices="auto",
+        accelerator="auto",
         logger=False,
         max_epochs=epochs,
-        precision=32,
-        callbacks=[RichProgressBar()],
+        precision=16,
+        callbacks=[RichProgressBar(), early_stop],
         auto_scale_batch_size=True,
         auto_lr_find=True,
         fast_dev_run=test,

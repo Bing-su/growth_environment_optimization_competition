@@ -49,7 +49,16 @@ class ProjectModel(pl.LightningModule):
         image, meta, label = batch
         pred = self(image, meta)
         loss = self.loss(pred, label)
+        self.log(
+            "train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
+        )
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        image, meta, label = batch
+        pred = self(image, meta)
+        loss = self.loss(pred, label)
+        self.log("val_loss", loss, prog_bar=True)
 
     def configure_optimizers(self):
         optimizer = Ranger21(
